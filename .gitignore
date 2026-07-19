@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+ENV/
+.env
+
+# Archivos de compilación (PyInstaller)
+build/
+dist/
+*.spec
+
+# Bases de datos locales de prueba o configuraciones pesadas
+*.log
+*.sqlite
