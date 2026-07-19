@@ -16,7 +16,7 @@ SolidCompression=yes
 WizardStyle=modern
 
 ; Evita que se instale o actualice si el servidor ya se está ejecutando
-AppMutex=ControlServerMutex
+AppMutex=ControlServerMutexSecret
 
 ; --- CONTROL DE ARCHIVOS ---
 [Files]
