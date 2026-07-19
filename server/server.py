@@ -1,5 +1,5 @@
 
-# CONTROL SERVIDOR DE TERMINALES - VERSIÓN 1.1 (CON PERSISTENCIA DE ESTADO)
+# CONTROL SERVIDOR DE TERMINALES - VERSIÓN 1.2 (CON PERSISTENCIA DE ESTADO)
 # =====================================================================
 import socket
 import threading
@@ -8,7 +8,24 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
 from datetime import datetime
-#import os
+import sys
+import ctypes
+from ctypes import wintypes
+
+# 🛡️ Evitar múltiples instancias del Server
+ERROR_ALREADY_EXISTS = 183
+kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+CreateMutex = kernel32.CreateMutexW
+CreateMutex.argtypes = [wintypes.LPCVOID, wintypes.BOOL, wintypes.LPCWSTR]
+CreateMutex.restype = wintypes.HANDLE
+
+# Este nombre DEBE coincidir con el de AppMutex de Inno Setup
+MUTEX_SERVER = "ControlServerMutexSecret"
+
+mutex_handle_cliente = CreateMutex(None, False, MUTEX_SERVER)
+if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
+    # Si el cliente ya está abierto, esta copia se destruye inmediatamente
+    sys.exit(0)
 
 # --- CONFIGURACIÓN DE RED ---
 PORT = 65432
@@ -26,7 +43,7 @@ COLOR_DANGER = "#dc2626"
 class ServidorGridTerminales:
     def __init__(self, root):
         self.root = root
-        self.root.title("Panel de Control de Terminales - Servidor Central Pro")
+        self.root.title("Panel de Control de Terminales - Servidor")
         self.root.geometry("1100x630")
         self.root.configure(bg=COLOR_BG)
 
@@ -124,13 +141,13 @@ class ServidorGridTerminales:
 
             mins_vivos = segundos_restantes // 60
 
-            # 1. Evaluamos y asignamos la condición de forma limpia
+            # 1. Evaluar y asignar la condición de forma limpia
             state_active = estado in ["Activo ✅", "Pausado ⏸️"]
 
-            # 2. Usamos la variable para definir el string de tiempo
+            # 2. Usar la variable para definir el string de tiempo
             tiempo_str = f"{mins_vivos} Minutos" if state_active else "-"
 
-            # 3. Construimos el diccionario sin ninguna advertencia
+            # 3. Construir el diccionario sin ninguna advertencia
             self.sala_pcs[id_pc] = {
                 "estado": estado,
                 "usuario": usuario if state_active else "-",
