@@ -127,6 +127,16 @@ _Los binarios finales se generarán de manera automática en la carpeta `dist/`.
 
 ---
 
+## 🖼️ Para modificar el Logo que se muestra en el Cliente
+
+Si deseas cambiar el logo que se muestra en el cliente, ve a la **carpeta de instalación del cliente**, luego ve a la carpeta **\_internal** y reemplaza **logo.png**
+
+```bash
+cd %programfiles%\Control Cliente\_internal\
+```
+
+---
+
 ## 📄 Licencia
 
 Este proyecto está bajo la licencia **GNU GPLv3**. Esto significa que el software es de código abierto y cualquiera puede modificarlo o redistribuirlo, siempre y cuando las versiones modificadas mantengan la misma licencia de código abierto. Consulta el archivo [LICENSE](LICENSE) para más detalles.
