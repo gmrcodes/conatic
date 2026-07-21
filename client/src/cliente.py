@@ -10,6 +10,8 @@ from tkinter import messagebox
 import sqlite3
 import sys
 from PIL import Image, ImageTk
+import psutil
+import subprocess
 import ctypes
 from ctypes import wintypes
 
@@ -603,12 +605,6 @@ if __name__ == "__main__":
     root.mainloop()
 
 # CREACION DE LAUNCHER
-
-import os
-import sys
-import time
-import psutil
-import subprocess
 
 APP_NAME = "cliente.exe"
 

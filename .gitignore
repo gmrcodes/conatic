@@ -13,6 +13,13 @@ build/
 dist/
 #*.spec
 
+# Archivos de compilación (InnoSetup)
+Output/
+
 # Bases de datos locales de prueba o configuraciones pesadas
 *.log
 *.sqlite
+*.db
+
+# Archivos de configuraciones
+.vscode/

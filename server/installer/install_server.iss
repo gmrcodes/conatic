@@ -1,17 +1,21 @@
+#define AppName "Control Server"
+#define AppVersion "1.2.0"
+#define AppPublisher "German Riveros"
+
 ; --- SECCIÓN DE CONFIGURACIÓN PRINCIPAL ---
 [Setup]
 ; AppId identifica de forma única al proyecto. Al mantener el mismo AppId, 
 ; Inno Setup detectará automáticamente si es una ACTUALIZACIÓN.
-AppId={{41F64431-2A6F-479B-81A1-DE0623E02E16}
-AppName=Control Server
-AppVersion=1.1.0
-AppPublisher=germaodev
+AppId={{41F64431-2A6F-479B-81A1-DE0623E02E16}}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher={#AppPublisher}
 DefaultDirName={autopf}\Control Server
 DefaultGroupName=Control Server
 AllowNoIcons=yes
 ; OutputBaseFilename es el nombre del instalador resultante
-OutputBaseFilename=Control_Server_Setup_v{AppVersion}
-Compression=lzma
+OutputBaseFilename=Control_Server_Setup_v{#AppVersion}
+Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 
@@ -30,15 +34,15 @@ Source: "..\dist\server\server.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 ; --- ICONOS Y ACCESOS DIRECTOS ---
 [Icons]
-Name: "{group}\Servidor Central Pro"; Filename: "{app}\servidor.exe"
-Name: "{autodesktop}\Servidor Central Pro"; Filename: "{app}\servidor.exe"; Tasks: desktopicon
+Name: "{group}\Control Server"; Filename: "{app}\servidor.exe"
+Name: "{autodesktop}\Control Server"; Filename: "{app}\servidor.exe"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 ; --- PROGRAMA POST-INSTALACIÓN ---
 [Run]
-Description: "{cm:LaunchProgram,Servidor Central Pro}"; Filename: "{app}\servidor.exe"; Flags: nowait postinstall skipifsilent
+Description: "{cm:LaunchProgram,Control Server}"; Filename: "{app}\servidor.exe"; Flags: nowait postinstall skipifsilent
 
 ; --- DESARROLLO EN INNO PASCAL SCRIPT ---
 [Code]
