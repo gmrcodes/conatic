@@ -48,7 +48,7 @@ begin
 
       '/Create ' +
       '/TN "Control Cliente" ' +
-      '/TR """' + GetLauncherPath() + '""" ' +
+      '/TR "' + GetLauncherPath() + '" ' +
       '/SC ONLOGON ' +
       '/RL HIGHEST ' +
       '/F',

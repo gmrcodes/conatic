@@ -73,6 +73,16 @@ def cargar_configuracion_completa():
             return config_defecto
     return config_defecto
 
+def obtener_ruta_db():
+    # Guarda la base de datos en %LOCALAPPDATA%\ControlClienteApp\cliente_local.db para persistencia entre sesiones
+    app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~'))
+    carpeta_app = os.path.join(app_data, 'ControlClienteApp')
+    
+    # Crea la carpeta si no existe
+    os.makedirs(carpeta_app, exist_ok=True)
+    
+    return os.path.join(carpeta_app, 'cache_cliente.db')
+
 # Cargar los datos config del JSON antes de que levante la interfaz gráfica
 CONFIG_SISTEMA = cargar_configuracion_completa()
 
@@ -119,7 +129,8 @@ class ClienteTerminal:
         threading.Thread(target=self.motor_cronometro, daemon=True).start()
 
     def inicializar_db_local(self):
-        self.conn_local = sqlite3.connect("cache_cliente.db", check_same_thread=False)
+        ruta_db = obtener_ruta_db()
+        self.conn_local = sqlite3.connect(ruta_db, check_same_thread=False)
         self.conn_local.execute("""
             CREATE TABLE IF NOT EXISTS usuarios_locales (
                 id TEXT PRIMARY KEY,
