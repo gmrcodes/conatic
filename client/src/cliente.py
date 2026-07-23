@@ -31,12 +31,10 @@ if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
     sys.exit(0)
 
 # CONFIGURACIÓN DEL CLIENTE
-#BASE_DIR = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
-#ARCH_CONFIG = os.path.join(BASE_DIR, "config_cliente.json")
 
 def resource_path(relative_path):
     """
-    Devuelve la ruta correcta tanto al ejecutar el .py
+    Devuelve la ruta correcta de resources tanto al ejecutar el .py
     como al ejecutar el .exe creado con PyInstaller.
     """
     try:
@@ -49,12 +47,18 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-ARCH_CONFIG = os.path.join(
-    os.path.dirname(sys.executable)
-    if getattr(sys, "frozen", False)
-    else os.path.dirname(os.path.abspath(__file__)),
-    "config_cliente.json",
-)
+def ruta_carpeta_appdata():
+    """Devuelve la ruta de la carpeta de datos de la aplicación en %LOCALAPPDATA%."""
+    app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~'))
+    carpeta_app = os.path.join(app_data, 'ControlClienteApp')
+    os.makedirs(carpeta_app, exist_ok=True)
+    return carpeta_app
+
+def obtener_ruta_config():
+    """Devuelve la ruta completa al archivo de configuración JSON del cliente."""
+    return os.path.join(ruta_carpeta_appdata(), 'config_cliente.json')
+
+ARCH_CONFIG = obtener_ruta_config()
 
 def cargar_configuracion_completa():
     # Valores default si el archivo JSON aún no se ha creado
@@ -63,25 +67,30 @@ def cargar_configuracion_completa():
         "server_ip": "127.0.0.1",
         "permitir_offline": True,
         "tiempo_predeterminado_minutos": 60
-    }
+    }    
+
     if os.path.exists(ARCH_CONFIG):
+        # Si la configuración ya existe, la cargamos y combinamos con los valores por defecto
         try:
-            with open(ARCH_CONFIG, "r") as f:
+            with open(ARCH_CONFIG, "r", encoding="utf-8") as f:
                 # Combina los valores existentes del JSON con los default
                 return {**config_defecto, **json.load(f)}
-        except:
+        except Exception as e:
+            print(f"Error al leer el archivo de configuración desde AppData: {e}")
             return config_defecto
+    else:
+        # Si no existe, crea el archivo con los valores por defecto
+        try:
+            with open(ARCH_CONFIG, "w", encoding="utf-8") as f:
+                json.dump(config_defecto, f, indent=4)
+        except Exception as e:
+            print(f"Error al crear el archivo de configuración en AppData: {e}")
+
     return config_defecto
 
 def obtener_ruta_db():
-    # Guarda la base de datos en %LOCALAPPDATA%\ControlClienteApp\cliente_local.db para persistencia entre sesiones
-    app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~'))
-    carpeta_app = os.path.join(app_data, 'ControlClienteApp')
-    
-    # Crea la carpeta si no existe
-    os.makedirs(carpeta_app, exist_ok=True)
-    
-    return os.path.join(carpeta_app, 'cache_cliente.db')
+    """Ruta completa a la base de datos de caché local."""
+    return os.path.join(ruta_carpeta_appdata(), 'cache_cliente.db')
 
 # Cargar los datos config del JSON antes de que levante la interfaz gráfica
 CONFIG_SISTEMA = cargar_configuracion_completa()
@@ -424,8 +433,11 @@ class ClienteTerminal:
             if accion == "actualizar_config":
               self.config["permitir_offline"] = cmd.get("permitir_offline", True)
               self.config["tiempo_predeterminado_minutos"] = cmd.get("tiempo_predeterminado_minutos", 60)
-              with open(ARCH_CONFIG, "w") as f:
-                json.dump(self.config, f)
+              try:
+                with open(ARCH_CONFIG, "w", encoding="utf-8") as f:
+                    json.dump(self.config, f, indent=4)
+              except Exception as e:
+                    print(f"Error al guardar actualización del archivo de configuración: {e}")
 
               # Guardar copia en SQLite local
               usuarios_server = cmd.get("usuarios", {})

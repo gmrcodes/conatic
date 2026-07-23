@@ -6,9 +6,16 @@ procedure CrearConfigJson();
 var
   Contenido: String;
   StrOffline: String;
+  RutaCarpeta: String;
 begin
+  // Apunta a la carpeta LOCALAPPDATA\ControlClienteApp
+  RutaCarpeta := ExpandConstant('{localappdata}\ControlClienteApp');
 
-  ConfigFile := ExpandConstant('{app}\config_cliente.json');
+  // Crea la carpeta si no existe
+  if not DirExists(RutaCarpeta) then
+    ForceDirectories(RutaCarpeta);
+
+  ConfigFile := RutaCarpeta + '\config_cliente.json';
 
   // Si es actualización y el archivo existe, respetamos la configuración previa
   if (ModoInstalacion = miActualizar) and FileExists(ConfigFile) then
@@ -16,9 +23,7 @@ begin
   
   // Si es reinstalación, eliminamos el archivo previo
   if (ModoInstalacion = miReinstalar) and FileExists(ConfigFile) then
-  begin
-    MostrarArchivo(ConfigFile);
-    Sleep(500); // Esperar medio segundo
+  begin    
     DeleteFile(ConfigFile);
   end;
 
@@ -44,10 +49,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    CrearConfigJson();
-
-    OcultarArchivo(ExpandConstant('{app}\config_cliente.json'));
-    OcultarArchivo(ExpandConstant('{app}\cache_cliente.db'));
+    CrearConfigJson();   
 
     if not RepararScheduler() then
     begin
