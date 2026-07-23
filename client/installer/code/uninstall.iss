@@ -1,18 +1,28 @@
+function InitializeUninstall(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := True;
+
+  // 1. Detener tarea programada antes de matar procesos
+  EliminarScheduler();
+
+  // 2. Matar procesos con /F (Forzado) y /T (Árbol de procesos)
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM launcher.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM cliente.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  // 3. Pausa de 1 segundo para dar tiempo a Windows de liberar los handles de archivos
+  Sleep(1000);
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   ConfigFile: String;
-  CacheDB: String;
-  ResultCode: Integer;
+  CacheDB: String;  
 begin
   // --- FASE 1: ANTES de empezar a borrar archivos ---
   if CurUninstallStep = usUninstall then
-  begin
-    // Detener y eliminar la tarea programada del Watchdog en schtasks
-    EliminarScheduler();
-
-    // Matar procesos activos para liberar bloqueos de archivos en Windows
-    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM launcher.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM cliente.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  begin    
 
     // Pregunta Conservar o eliminar configuración/base de datos
     ConfigFile := ExpandConstant('{localappdata}\ControlClienteApp\config_cliente.json');
