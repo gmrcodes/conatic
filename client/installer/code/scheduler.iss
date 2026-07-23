@@ -41,22 +41,25 @@ function CrearScheduler(): Boolean;
 var
   CodigoSalida: Integer;
   Exito: Boolean;
+  ComandoPS: String;
 begin
-  Exito :=
-    Exec(
-      ExpandConstant('{sys}\schtasks.exe'),
+  // Construcción del script de PowerShell con TODAS las opciones incluidas
+  ComandoPS := 
+    '$action = New-ScheduledTaskAction -Execute "' + GetLauncherPath() + '"; ' +
+    '$trigger = New-ScheduledTaskTrigger -AtLogOn; ' +
+    '$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -DontStopOnIdleEnd -ExecutionTimeLimit 0; ' +
+    '$principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest; ' +
+    'Register-ScheduledTask -TaskName "Control Cliente" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force; ' +
+    'Start-ScheduledTask -TaskName "Control Cliente";';
 
-      '/Create ' +
-      '/TN "Control Cliente" ' +
-      '/TR "' + GetLauncherPath() + '" ' +
-      '/SC ONLOGON ' +
-      '/RL HIGHEST ' +
-      '/F',
-
-      '',
-      SW_HIDE,
-      ewWaitUntilTerminated,
-      CodigoSalida);
+  Exito := Exec(
+    'powershell.exe',
+    '-ExecutionPolicy Bypass -NoProfile -NonInteractive -WindowStyle Hidden -Command "' + ComandoPS + '"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    CodigoSalida
+  );
 
   Result := Exito and (CodigoSalida = 0);
 end;
