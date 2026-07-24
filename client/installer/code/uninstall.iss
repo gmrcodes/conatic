@@ -1,4 +1,4 @@
-function InitializeUninstall(): Boolean;
+procedure InitializeUninstallProgressForm();
 var
   ResultCode: Integer;
 begin
@@ -11,8 +11,8 @@ begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM launcher.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM cliente.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-  // 3. Pausa de 1 segundo para dar tiempo a Windows de liberar los handles de archivos
-  Sleep(1000);
+  // 3. Pausa medio segundo para dar tiempo a Windows de liberar los handles de archivos
+  Sleep(500);
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
@@ -43,7 +43,7 @@ begin
       end;
   end;
 
-  // --- FASE 2: DESPUÉS de que el motor de Inno Setup borró los archivos del registro ---
+  // --- FASE 2: Borrar carpetas después de borrar el registro ---
   if CurUninstallStep = usPostUninstall then
   begin
     // Si el usuario eligió "No" en el paso anterior, los archivos JSON/DB permanecerán allí.
