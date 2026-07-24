@@ -43,18 +43,17 @@ var
   Exito: Boolean;
   ComandoPS: String;
 begin
-  // Construcción del script de PowerShell con TODAS las opciones incluidas
-  ComandoPS := 
+  // Construcción del script de PowerShell contra ahorro de energía e inactividad (Idle)
+  ComandoPS :=
     '$action = New-ScheduledTaskAction -Execute "' + GetLauncherPath() + '"; ' +
     '$trigger = New-ScheduledTaskTrigger -AtLogOn; ' +
-    '$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -DontStopOnIdleEnd -ExecutionTimeLimit 0; ' +
-    '$principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest; ' +
-    'Register-ScheduledTask -TaskName "Control Cliente" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force; ' +
-    'Start-ScheduledTask -TaskName "Control Cliente";';
+    '$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -DontStopOnIdleEnd; ' +
+    '$principal = New-ScheduledTaskPrincipal -RunLevel Highest; ' +
+    'Register-ScheduledTask -TaskName "Control Cliente" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force;';
 
   Exito := Exec(
-    'powershell.exe',
-    '-ExecutionPolicy Bypass -NoProfile -NonInteractive -WindowStyle Hidden -Command "' + ComandoPS + '"',
+    ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "' + ComandoPS + '"',
     '',
     SW_HIDE,
     ewWaitUntilTerminated,
