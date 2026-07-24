@@ -2,7 +2,6 @@ procedure InitializeUninstallProgressForm();
 var
   ResultCode: Integer;
 begin
-  Result := True;
 
   // 1. Detener tarea programada antes de matar procesos
   EliminarScheduler();
