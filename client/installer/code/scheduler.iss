@@ -41,24 +41,64 @@ function CrearScheduler(): Boolean;
 var
   CodigoSalida: Integer;
   Exito: Boolean;
-  ComandoPS: String;
+  XmlPath: String;
+  XmlContenido: String;
 begin
-  // Construcción del script de PowerShell contra ahorro de energía e inactividad (Idle)
-  ComandoPS :=
-    '$action = New-ScheduledTaskAction -Execute "' + GetLauncherPath() + '"; ' +
-    '$trigger = New-ScheduledTaskTrigger -AtLogOn; ' +
-    '$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -DontStopOnIdleEnd; ' +
-    '$principal = New-ScheduledTaskPrincipal -RunLevel Highest; ' +
-    'Register-ScheduledTask -TaskName "Control Cliente" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force;';
+  XmlPath := ExpandConstant('{tmp}\task_config.xml');
 
-  Exito := Exec(
-    ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-    '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "' + ComandoPS + '"',
-    '',
-    SW_HIDE,
-    ewWaitUntilTerminated,
-    CodigoSalida
-  );
+  // Construcción del XML para Windows Task Scheduler v1.2
+  XmlContenido :=
+    '<?xml version="1.0" encoding="UTF-16"?>' + #13#10 +
+    '<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">' + #13#10 +
+    '  <Triggers>' + #13#10 +
+    '    <LogonTrigger>' + #13#10 +
+    '      <Enabled>true</Enabled>' + #13#10 +
+    '    </LogonTrigger>' + #13#10 +
+    '  </Triggers>' + #13#10 +
+    '  <Principals>' + #13#10 +
+    '    <Principal id="Author">' + #13#10 +
+    '      <RunLevel>HighestAvailable</RunLevel>' + #13#10 + // Ejecuta con los máximos privilegios disponibles
+    '    </Principal>' + #13#10 +
+    '  </Principals>' + #13#10 +
+    '  <Settings>' + #13#10 +
+    '    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>' + #13#10 +
+    '    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>' + #13#10 + // Permite ejecución en BATERÍA
+    '    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>' + #13#10 + // No se detiene si desconectan el cable
+    '    <AllowHardTerminate>false</AllowHardTerminate>' + #13#10 +
+    '    <StartWhenAvailable>true</StartWhenAvailable>' + #13#10 +
+    '    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>' + #13#10 +
+    '    <IdleSettings>' + #13#10 +
+    '      <StopOnIdleEnd>false</StopOnIdleEnd>' + #13#10 +
+    '      <RestartOnIdle>false</RestartOnIdle>' + #13#10 +
+    '    </IdleSettings>' + #13#10 +
+    '    <AllowStartOnDemand>true</AllowStartOnDemand>' + #13#10 +
+    '    <Enabled>true</Enabled>' + #13#10 +
+    '    <Hidden>false</Hidden>' + #13#10 +
+    '    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>' + #13#10 + // Sin límite de tiempo (no se mata a las 72 horas)
+    '    <Priority>7</Priority>' + #13#10 +
+    '  </Settings>' + #13#10 +
+    '  <Actions Context="Author">' + #13#10 +
+    '    <Exec>' + #13#10 +
+    '      <Command>' + GetLauncherPath() + '</Command>' + #13#10 +
+    '    </Exec>' + #13#10 +
+    '  </Actions>' + #13#10 +
+    '</Task>';
+
+  // Guardar archivo XML temporal
+  SaveStringToFile(XmlPath, XmlContenido, False);
+
+  // Crear la tarea importando la configuración XML
+  Exito :=
+    Exec(
+      ExpandConstant('{sys}\schtasks.exe'),
+      '/Create /TN "Control Cliente" /XML "' + XmlPath + '" /F',
+      '',
+      SW_HIDE,
+      ewWaitUntilTerminated,
+      CodigoSalida);
+
+  // Borrar el archivo temporal
+  DeleteFile(XmlPath);
 
   Result := Exito and (CodigoSalida = 0);
 end;
