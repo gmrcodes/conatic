@@ -20,8 +20,6 @@ def asegurar_instancia_unica():
     global _lock_socket
     try:
         _lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Evita que el socket quede colgado en caso de reinicio rápido
-        #_lock_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _lock_socket.bind(('127.0.0.1', PUERTO_MUTEX_INTERNO))
         _lock_socket.listen(1)
     except socket.error:
@@ -61,7 +59,6 @@ COLOR_TEXT_MAIN = "#ffffff"
 COLOR_TEXT_MUTED = "#858585"
 COLOR_ACCENT = "#007acc"
 COLOR_SUCCESS = "#16a34a"
-COLOR_DANGER = "#dc2626"
 
 class ServidorGridTerminales:
     def __init__(self, root):
@@ -258,7 +255,6 @@ class ServidorGridTerminales:
 
         self.tabla_pcs.pack(expand=True, fill="both")
 
-        # Vincular evento de clic derecho compatible con Linux (<Button-3>) y macOS (<Button-2>)
         bind_right_click = "<Button-2>" if SISTEMA_OPERATIVO == "Darwin" else "<Button-3>"
         self.tabla_pcs.bind(bind_right_click, self.mostrar_menu_contextual)
 
@@ -291,8 +287,8 @@ class ServidorGridTerminales:
             return
 
         paquete = {"accion": accion}
-        try:
-            self.enviar_json(sockets_clientes[id_pc], paquete).encode('utf-8')
+        try:            
+            self.enviar_json(sockets_clientes[id_pc], paquete)
 
             if accion == "pausar_terminal":
                 self.sala_pcs[id_pc]["estado"] = "Pausado ⏸️"
@@ -322,8 +318,8 @@ class ServidorGridTerminales:
             msg_texto = txt_mensaje.get().strip()
             if not msg_texto: return
             paquete = {"accion": "mostrar_mensaje", "contenido": msg_texto}
-            try:
-                self.enviar_json(sockets_clientes[id_pc], paquete).encode('utf-8')
+            try:                
+                self.enviar_json(sockets_clientes[id_pc], paquete)
                 v_msg.destroy()
             except:
                 messagebox.showerror("Error de Red", "No se pudo enviar el mensaje. Conexión inestable.")
@@ -351,10 +347,11 @@ class ServidorGridTerminales:
 
     def motor_reloj_servidor(self):
         debe_refrescar = False
-        for id_pc, info in self.sala_pcs.items():
+        
+        for id_pc, info in list(self.sala_pcs.items()):
             if info["estado"] == "Activo ✅" and "segundos_restantes" in info:
-                if info["segundos_restantes"] > 0:
-                    info["segundos_restantes"] -= 5
+                if info["segundos_restantes"] > 0:                    
+                    info["segundos_restantes"] -= 1
                     mins_vivos = info["segundos_restantes"] // 60
                     info["tiempo"] = f"{mins_vivos} Minutos"
                     debe_refrescar = True
@@ -410,7 +407,8 @@ class ServidorGridTerminales:
             "usuarios": db_map
         }
         for id_pc, sock_conn in list(sockets_clientes.items()):
-            try: self.enviar_json(sock_conn, paquete_sync).encode('utf-8')
+            try:                
+                self.enviar_json(sock_conn, paquete_sync)
             except Exception as e:
                 print(f"[!] Error al enviar paquete de sincronización: {e}")
 
@@ -466,7 +464,8 @@ class ServidorGridTerminales:
                 "usuario_id": id_u,
                 "nombre": nom_u
             }
-            self.enviar_json(sockets_clientes[id_pc], paquete).encode('utf-8')
+            
+            self.enviar_json(sockets_clientes[id_pc], paquete)
 
             self.entry_id.delete(0, tk.END)
             self.entry_nombre.delete(0, tk.END)
@@ -511,7 +510,7 @@ class ServidorGridTerminales:
             }
 
             try:                
-                self.enviar_json(sockets_clientes[id_pc_destino], paquete_destino).encode('utf-8')
+                self.enviar_json(sockets_clientes[id_pc_destino], paquete_destino)
 
                 self.sala_pcs[id_pc_destino] = {
                     "estado": "Activo ✅", "usuario": info_origen["usuario"],
@@ -549,7 +548,7 @@ class ServidorGridTerminales:
         server.listen()
 
         while True:
-            conn, addr = server.accept()
+            conn, _ = server.accept()
             threading.Thread(target=self.bucle_comunicacion_cliente, args=(conn,), daemon=True).start()
 
     def bucle_comunicacion_cliente(self, conn):
@@ -616,7 +615,8 @@ class ServidorGridTerminales:
                                         "usuario_id": usuario,
                                         "nombre": nombre
                                     }
-                                    try: self.enviar_json(conn, paquete_recuperacion).encode('utf-8')
+                                    try:                                        
+                                        self.enviar_json(conn, paquete_recuperacion)
                                     except Exception as e:
                                         print(f"[!] Error al enviar paquete de recuperación: {e}")
 
@@ -643,8 +643,7 @@ class ServidorGridTerminales:
                                 INSERT INTO usuarios (id, nombre, saldo_segundos) VALUES (?, ?, 0)
                                 ON CONFLICT(id) DO UPDATE SET nombre=excluded.nombre
                             """, (u_id, nombre_usuario))
-
-                            ahora_db = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            
                             hora_pantalla = datetime.now().strftime("%I:%M:%S %p")
                             cursor.execute("""
                                 INSERT INTO historial_sesiones (id_cliente, id_usuario, fecha_hora_ingreso)
