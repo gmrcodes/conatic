@@ -20,13 +20,12 @@ def asegurar_instancia_unica():
     try:
         _lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Evita que el socket quede colgado en caso de reinicio rápido
-        _lock_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #_lock_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _lock_socket.bind(('127.0.0.1', PUERTO_MUTEX_INTERNO))
+        _lock_socket.listen(1)
     except socket.error:
         print("[!] El servidor ya se encuentra en ejecución.")
         sys.exit(0)
-
-asegurar_instancia_unica()
 
 # DETECTAR EL SISTEMA OPERATIVO
 SISTEMA_OPERATIVO = platform.system()
@@ -638,6 +637,7 @@ class ServidorGridTerminales:
             conn.close()
 
 if __name__ == "__main__":
+    asegurar_instancia_unica()
     root = tk.Tk()
     app = ServidorGridTerminales(root)
     root.mainloop()
