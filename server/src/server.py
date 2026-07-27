@@ -8,11 +8,12 @@ from tkinter import ttk, messagebox
 import sqlite3
 from datetime import datetime
 import sys
+import os
 import platform
 
 # MECANISMO DE INSTANCIA ÚNICA MULTIPLATAFORMA
 # Uso un socket local interno.
-PUERTO_MUTEX_INTERNO = 47382
+PUERTO_MUTEX_INTERNO = 65433
 _lock_socket = None
 
 def asegurar_instancia_unica():
@@ -29,6 +30,19 @@ def asegurar_instancia_unica():
 
 # DETECTAR EL SISTEMA OPERATIVO
 SISTEMA_OPERATIVO = platform.system()
+
+# DEFINICIÓN DE RUTA DE LA BASE DE DATOS CENTRAL
+def obtener_ruta_db():
+    if SISTEMA_OPERATIVO == "Windows":
+        # %APPDATA%/ControlServerApp/sistema_central.db
+        base_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "ControlServerApp")
+    else:
+        # ~/.local/share/controlserverapp/sistema_central.db
+        base_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "controlserverapp")
+    
+    # Crear el directorio si no existe
+    os.makedirs(base_dir, exist_ok=True)
+    return os.path.join(base_dir, "sistema_central.db")
 
 # --- CONFIGURACIÓN DE RED ---
 PORT = 65432
@@ -70,8 +84,9 @@ class ServidorGridTerminales:
         self.root.after(1000, self.motor_reloj_servidor)
 
     def inicializar_db_central(self):
+        ruta_db = obtener_ruta_db()
         with db_lock:
-            self.conn = sqlite3.connect("sistema_central.db", check_same_thread=False)
+            self.conn = sqlite3.connect(ruta_db, check_same_thread=False)
             self.conn.execute("PRAGMA foreign_keys = ON;")
             cursor = self.conn.cursor()
             cursor.execute("""
@@ -525,12 +540,18 @@ class ServidorGridTerminales:
 
     def bucle_comunicacion_cliente(self, conn):
         id_pc = None
+        buffer = ""
         try:
             while True:
-                data = conn.recv(4096).decode('utf-8')
-                if not data: break
-                msg = json.loads(data)
-                accion = msg.get("accion")
+                chunk = conn.recv(4096).decode('utf-8')
+                if not chunk: break
+                buffer += chunk
+                while '\n' in buffer:
+                    data, buffer = buffer.split('\n', 1)
+                    if not data.strip(): continue
+
+                    msg = json.loads(data)
+                    accion = msg.get("accion")
 
                 if accion == "registrarse":
                     id_pc = str(msg.get("id_cliente"))
