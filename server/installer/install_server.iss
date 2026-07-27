@@ -1,11 +1,10 @@
 #define AppName "Control Server"
-#define AppVersion "1.2.0"
+#define AppVersion "0.3.0"
 #define AppPublisher "German Riveros"
 
 ; --- SECCIÓN DE CONFIGURACIÓN PRINCIPAL ---
 [Setup]
-; AppId identifica de forma única al proyecto. Al mantener el mismo AppId, 
-; Inno Setup detectará automáticamente si es una ACTUALIZACIÓN.
+; AppId identifica de forma única al proyecto. Al mantener el mismo AppId, se identifica que es la misma aplicación y permite actualizarla.
 AppId={{41F64431-2A6F-479B-81A1-DE0623E02E16}}
 AppName={#AppName}
 AppVersion={#AppVersion}
@@ -19,8 +18,8 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 
-; Evita que se instale o actualice si el servidor ya se está ejecutando
-AppMutex=ControlServerMutexSecret
+; AppMutex evita que se instale o actualice si el servidor ya se está ejecutando. Solo funciona en Windows.
+;AppMutex=ControlServerMutexSecret
 
 ; --- CONTROL DE ARCHIVOS ---
 [Files]
@@ -28,7 +27,7 @@ AppMutex=ControlServerMutexSecret
 Source: "..\dist\server\server.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 ; NOTA SOBRE LA BASE DE DATOS (sistema_central.db): 
-; Si tu script de Python crea la base de datos automáticamente al arrancar, NO la incluyas aquí.
+; El script de Python crea la base de datos automáticamente al iniciar, NO la incluyas aquí.
 ; Si manejas una base de datos inicial con datos pre-cargados, usa la siguiente línea:
 ;Source: "sistema_central.db"; DestDir: "{app}"; Flags: onlyifdoesntexist uninsneveruninstall
 
