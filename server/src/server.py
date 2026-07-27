@@ -292,7 +292,7 @@ class ServidorGridTerminales:
 
         paquete = {"accion": accion}
         try:
-            sockets_clientes[id_pc].sendall(json.dumps(paquete).encode('utf-8'))
+            self.enviar_json(sockets_clientes[id_pc], paquete).encode('utf-8')
 
             if accion == "pausar_terminal":
                 self.sala_pcs[id_pc]["estado"] = "Pausado ⏸️"
@@ -323,7 +323,7 @@ class ServidorGridTerminales:
             if not msg_texto: return
             paquete = {"accion": "mostrar_mensaje", "contenido": msg_texto}
             try:
-                sockets_clientes[id_pc].sendall(json.dumps(paquete).encode('utf-8'))
+                self.enviar_json(sockets_clientes[id_pc], paquete).encode('utf-8')
                 v_msg.destroy()
             except:
                 messagebox.showerror("Error de Red", "No se pudo enviar el mensaje. Conexión inestable.")
@@ -368,7 +368,7 @@ class ServidorGridTerminales:
 
         if debe_refrescar:
             self.actualizar_tabla_ui()
-        self.root.after(5000, self.motor_reloj_servidor)
+        self.root.after(1000, self.motor_reloj_servidor)
 
     def evento_pc_seleccionada(self, event):
         seleccion = self.tabla_pcs.selection()
@@ -410,8 +410,9 @@ class ServidorGridTerminales:
             "usuarios": db_map
         }
         for id_pc, sock_conn in list(sockets_clientes.items()):
-            try: sock_conn.sendall(json.dumps(paquete_sync).encode('utf-8'))
-            except: pass
+            try: self.enviar_json(sock_conn, paquete_sync).encode('utf-8')
+            except Exception as e:
+                print(f"[!] Error al enviar paquete de sincronización: {e}")
 
     def enviar_desbloqueo_a_cliente(self):
         seleccion = self.tabla_pcs.selection()
@@ -465,7 +466,7 @@ class ServidorGridTerminales:
                 "usuario_id": id_u,
                 "nombre": nom_u
             }
-            sockets_clientes[id_pc].sendall(json.dumps(paquete).encode('utf-8'))
+            self.enviar_json(sockets_clientes[id_pc], paquete).encode('utf-8')
 
             self.entry_id.delete(0, tk.END)
             self.entry_nombre.delete(0, tk.END)
@@ -509,8 +510,8 @@ class ServidorGridTerminales:
                 "nombre": info_origen["nombre"]
             }
 
-            try:
-                sockets_clientes[id_pc_destino].sendall(json.dumps(paquete_destino).encode('utf-8'))
+            try:                
+                self.enviar_json(sockets_clientes[id_pc_destino], paquete_destino).encode('utf-8')
 
                 self.sala_pcs[id_pc_destino] = {
                     "estado": "Activo ✅", "usuario": info_origen["usuario"],
@@ -524,6 +525,19 @@ class ServidorGridTerminales:
                 messagebox.showerror("Error", f"Fallo al transferir datos por socket: {e}")
 
         tk.Button(v_traslado, text="Confirmar Cambio", command=ejecutar_traslado, bg=COLOR_ACCENT, fg=COLOR_TEXT_MAIN, bd=0, font=(FUENTE_BASE, 10, "bold"), cursor="hand2").pack(pady=10)
+
+    # =========================================================================
+    # AUXILIAR DE RED
+    # =========================================================================
+    def enviar_json(self, sock, paquete):
+        """Envía un paquete JSON delimitado por salto de línea de forma segura."""
+        try:
+            payload = (json.dumps(paquete) + "\n").encode('utf-8')
+            sock.sendall(payload)
+            return True
+        except Exception as e:
+            print(f"[!] Error de envío por socket: {e}")
+            return False
 
     # =========================================================================
     # ESCUCHA DE RED (SOCKETS)
@@ -546,6 +560,7 @@ class ServidorGridTerminales:
                 chunk = conn.recv(4096).decode('utf-8')
                 if not chunk: break
                 buffer += chunk
+                # Procesamiento de mensajes completos delimitados por salto de línea
                 while '\n' in buffer:
                     data, buffer = buffer.split('\n', 1)
                     if not data.strip(): continue
@@ -553,107 +568,110 @@ class ServidorGridTerminales:
                     msg = json.loads(data)
                     accion = msg.get("accion")
 
-                if accion == "registrarse":
-                    id_pc = str(msg.get("id_cliente"))
-                    sockets_clientes[id_pc] = conn
+                    if accion == "registrarse":
+                        id_pc = str(msg.get("id_cliente"))
+                        sockets_clientes[id_pc] = conn
 
-                    with db_lock:
-                        cursor = self.conn.cursor()
-                        cursor.execute("SELECT id, nombre FROM usuarios")
-                        db_map = {f[0]: f[1] for f in cursor.fetchall()}
+                        with db_lock:
+                            cursor = self.conn.cursor()
+                            cursor.execute("SELECT id, nombre FROM usuarios")
+                            db_map = {f[0]: f[1] for f in cursor.fetchall()}
 
-                    paquete_sync = {
-                        "accion": "actualizar_config",
-                        "permitir_offline": self.permitir_offline_var.get(),
-                        "tiempo_predeterminado_minutos": 60,
-                        "usuarios": db_map
-                    }
-                    conn.sendall(json.dumps(paquete_sync).encode('utf-8'))
+                        paquete_sync = {
+                            "accion": "actualizar_config",
+                            "permitir_offline": self.permitir_offline_var.get(),
+                            "tiempo_predeterminado_minutos": 60,
+                            "usuarios": db_map
+                        }
+                        self.enviar_json(conn, paquete_sync)
 
-                    with db_lock:
-                        cursor.execute("SELECT estado, usuario, nombre, hora_ingreso, segundos_restantes, ultima_actualizacion FROM estado_terminales WHERE id_cliente = ?", (id_pc,))
-                        fila = cursor.fetchone()
+                        with db_lock:
+                            cursor.execute("SELECT estado, usuario, nombre, hora_ingreso, segundos_restantes, ultima_actualizacion FROM estado_terminales WHERE id_cliente = ?", (id_pc,))
+                            fila = cursor.fetchone()
 
-                    sesion_recuperada = False
-                    if fila:
-                        estado, usuario, nombre, hora_ingreso, segundos_restantes, ultima_actualizacion = fila
-                        if estado in ["Activo ✅", "Pausado ⏸️"]:
-                            if estado == "Activo ✅" and ultima_actualizacion:
-                                try:
-                                    dt_ultima = datetime.strptime(ultima_actualizacion, "%Y-%m-%d %H:%M:%S")
-                                    delta_desconexion = int((datetime.now() - dt_ultima).total_seconds())
-                                    segundos_restantes = max(0, segundos_restantes - delta_desconexion)
-                                    if segundos_restantes == 0:
-                                        estado = "Bloqueado 🔒"
-                                except ValueError: pass
+                        sesion_recuperada = False
+                        if fila:
+                            estado, usuario, nombre, hora_ingreso, segundos_restantes, ultima_actualizacion = fila
+                            if estado in ["Activo ✅", "Pausado ⏸️"]:
+                                if estado == "Activo ✅" and ultima_actualizacion:
+                                    try:
+                                        dt_ultima = datetime.strptime(ultima_actualizacion, "%Y-%m-%d %H:%M:%S")
+                                        delta_desconexion = int((datetime.now() - dt_ultima).total_seconds())
+                                        segundos_restantes = max(0, segundos_restantes - delta_desconexion)
+                                        if segundos_restantes == 0:
+                                            estado = "Bloqueado 🔒"
+                                    except ValueError: pass
 
-                            if segundos_restantes > 0:
-                                self.sala_pcs[id_pc] = {
-                                    "estado": estado, "usuario": usuario, "nombre": nombre,
-                                    "hora_ingreso": hora_ingreso, "segundos_restantes": segundos_restantes,
-                                    "tiempo": f"{segundos_restantes // 60} Minutos"
-                                }
-                                sesion_recuperada = True
+                                if segundos_restantes > 0:
+                                    self.sala_pcs[id_pc] = {
+                                        "estado": estado, "usuario": usuario, "nombre": nombre,
+                                        "hora_ingreso": hora_ingreso, "segundos_restantes": segundos_restantes,
+                                        "tiempo": f"{segundos_restantes // 60} Minutos"
+                                    }
+                                    sesion_recuperada = True
 
-                                paquete_recuperacion = {
-                                    "accion": "desbloqueo_remoto",
-                                    "tiempo_segundos": segundos_restantes,
-                                    "usuario_id": usuario,
-                                    "nombre": nombre
-                                }
-                                try: conn.sendall(json.dumps(paquete_recuperacion).encode('utf-8'))
-                                except: pass
+                                    paquete_recuperacion = {
+                                        "accion": "desbloqueo_remoto",
+                                        "tiempo_segundos": segundos_restantes,
+                                        "usuario_id": usuario,
+                                        "nombre": nombre
+                                    }
+                                    try: self.enviar_json(conn, paquete_recuperacion).encode('utf-8')
+                                    except Exception as e:
+                                        print(f"[!] Error al enviar paquete de recuperación: {e}")
 
-                                self.persistir_estado_terminal_db(id_pc)
+                                    self.persistir_estado_terminal_db(id_pc)
 
-                    if not sesion_recuperada:
+                        if not sesion_recuperada:
+                            self.sala_pcs[id_pc] = {"estado": "Bloqueado 🔒", "usuario": "-", "nombre": "-", "hora_ingreso": "-", "tiempo": "-", "segundos_restantes": 0}
+                            self.persistir_estado_terminal_db(id_pc)
+
+                        self.root.after(0, self.actualizar_tabla_ui)
+
+                    elif accion == "sincronizar_offline":
+                        u_id = msg.get("usuario")
+                        segundos_restantes = msg.get("tiempo_restante", 3600)
+                        minutos_restantes = segundos_restantes // 60
+
+                        with db_lock:
+                            cursor = self.conn.cursor()
+                            cursor.execute("SELECT nombre FROM usuarios WHERE id = ?", (u_id,))
+                            res_usuario = cursor.fetchone()
+                            nombre_usuario = res_usuario[0] if res_usuario else msg.get("nombre", "Usuario Offline Temporal")
+
+                            cursor.execute("""
+                                INSERT INTO usuarios (id, nombre, saldo_segundos) VALUES (?, ?, 0)
+                                ON CONFLICT(id) DO UPDATE SET nombre=excluded.nombre
+                            """, (u_id, nombre_usuario))
+
+                            ahora_db = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            hora_pantalla = datetime.now().strftime("%I:%M:%S %p")
+                            cursor.execute("""
+                                INSERT INTO historial_sesiones (id_cliente, id_usuario, fecha_hora_ingreso)
+                                VALUES (?, ?, ?)
+                            """, (id_pc, u_id, f"Offline ({hora_pantalla})"))
+                            self.conn.commit()
+
+                        self.sala_pcs[id_pc] = {
+                            "estado": "Activo ✅", "usuario": u_id, "nombre": nombre_usuario,
+                            "hora_ingreso": f"Offline ({hora_pantalla})",
+                            "segundos_restantes": segundos_restantes, "tiempo": f"{minutos_restantes} Minutos"
+                        }
+                        self.persistir_estado_terminal_db(id_pc)
+                        self.root.after(0, self.actualizar_tabla_ui)
+
+                    elif accion == "tiempo_agotado_cliente":
                         self.sala_pcs[id_pc] = {"estado": "Bloqueado 🔒", "usuario": "-", "nombre": "-", "hora_ingreso": "-", "tiempo": "-", "segundos_restantes": 0}
                         self.persistir_estado_terminal_db(id_pc)
+                        self.root.after(0, self.actualizar_tabla_ui)
 
-                    self.root.after(0, self.actualizar_tabla_ui)
-
-                elif accion == "sincronizar_offline":
-                    u_id = msg.get("usuario")
-                    segundos_restantes = msg.get("tiempo_restante", 3600)
-                    minutos_restantes = segundos_restantes // 60
-
-                    with db_lock:
-                        cursor = self.conn.cursor()
-                        cursor.execute("SELECT nombre FROM usuarios WHERE id = ?", (u_id,))
-                        res_usuario = cursor.fetchone()
-                        nombre_usuario = res_usuario[0] if res_usuario else msg.get("nombre", "Usuario Offline Temporal")
-
-                        cursor.execute("""
-                            INSERT INTO usuarios (id, nombre, saldo_segundos) VALUES (?, ?, 0)
-                            ON CONFLICT(id) DO UPDATE SET nombre=excluded.nombre
-                        """, (u_id, nombre_usuario))
-
-                        ahora_db = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        hora_pantalla = datetime.now().strftime("%I:%M:%S %p")
-                        cursor.execute("""
-                            INSERT INTO historial_sesiones (id_cliente, id_usuario, fecha_hora_ingreso)
-                            VALUES (?, ?, ?)
-                        """, (id_pc, u_id, f"Offline ({hora_pantalla})"))
-                        self.conn.commit()
-
-                    self.sala_pcs[id_pc] = {
-                        "estado": "Activo ✅", "usuario": u_id, "nombre": nombre_usuario,
-                        "hora_ingreso": f"Offline ({hora_pantalla})",
-                        "segundos_restantes": segundos_restantes, "tiempo": f"{minutos_restantes} Minutos"
-                    }
-                    self.persistir_estado_terminal_db(id_pc)
-                    self.root.after(0, self.actualizar_tabla_ui)
-
-                elif accion == "tiempo_agotado_cliente":
-                    self.sala_pcs[id_pc] = {"estado": "Bloqueado 🔒", "usuario": "-", "nombre": "-", "hora_ingreso": "-", "tiempo": "-", "segundos_restantes": 0}
-                    self.persistir_estado_terminal_db(id_pc)
-                    self.root.after(0, self.actualizar_tabla_ui)
-
-        except: pass
+        except Exception as e:
+            print(f"[!] Error en el procesamiento del mensaje: {e}")
         finally:
             if id_pc in sockets_clientes: del sockets_clientes[id_pc]
             if id_pc in self.sala_pcs:
                 self.sala_pcs[id_pc] = {"estado": "Desconectado", "usuario": "-", "nombre": "-", "hora_ingreso": "-", "tiempo": "-"}
+                self.persistir_estado_terminal_db(id_pc)
             self.root.after(0, self.actualizar_tabla_ui)
             conn.close()
 
