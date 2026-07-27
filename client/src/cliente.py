@@ -106,9 +106,9 @@ COLOR_DANGER = "#dc2626"
 
 class ClienteTerminal:
     def __init__(self, root):
-        self.root.bind("<Control-Shift-Q>", lambda e: self.root.destroy()) # Atajo de emergencia para cerrar la app
         self.root = root
         self.root.title(f"Terminal Cliente N° {ID_CLIENTE}")
+        self.root.bind("<Control-Shift-Q>", lambda e: self.root.destroy()) # Atajo de emergencia para cerrar la app
 
         # Variables de estado
         self.bloqueado = True
