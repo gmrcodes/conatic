@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import messagebox
 import sqlite3
 import sys
+import platform
 from PIL import Image, ImageTk
 
 # 🛡️ EVITAR MULTIPLES INSTANCIAS DEL CLIENTE
@@ -23,6 +24,8 @@ except socket.error:
     messagebox.showerror("Error de Inicio", "Ya hay una instancia del cliente en ejecución.")
     sys.exit(0)
 
+# DETECTAR EL SISTEMA OPERATIVO
+SISTEMA_OPERATIVO = platform.system()
 
 # CONFIGURACIÓN DEL CLIENTE
 
@@ -42,15 +45,25 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 def ruta_carpeta_appdata():
-    """Devuelve la ruta de la carpeta de datos de la aplicación en %LOCALAPPDATA%."""
-    app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~'))
-    carpeta_app = os.path.join(app_data, 'ControlClienteApp')
-    os.makedirs(carpeta_app, exist_ok=True)
-    return carpeta_app
+    """Devuelve la ruta de almacenamiento estándar según el sistema operativo."""
+    if SISTEMA_OPERATIVO == "Windows":
+        # %APPDATA%/ControlClienteApp/
+        base_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "ControlClienteApp")
+    else:
+        # ~/.local/share/controlclienteapp/
+        base_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "controlclienteapp")
 
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir, exist_ok=True)
+    return base_dir
+    
 def obtener_ruta_config():
     """Devuelve la ruta completa al archivo de configuración JSON del cliente."""
     return os.path.join(ruta_carpeta_appdata(), 'config_cliente.json')
+
+def obtener_ruta_db():
+    """Ruta completa a la base de datos de caché local."""
+    return os.path.join(ruta_carpeta_appdata(), 'cache_cliente.db')
 
 ARCH_CONFIG = obtener_ruta_config()
 
@@ -78,10 +91,6 @@ def cargar_configuracion_completa():
             print(f"Error al crear el archivo de configuración: {e}")
 
     return config_defecto
-
-def obtener_ruta_db():
-    """Ruta completa a la base de datos de caché local."""
-    return os.path.join(ruta_carpeta_appdata(), 'cache_cliente.db')
 
 # CARGAR CONFIGURACIÓN DEL SISTEMA
 CONFIG_SISTEMA = cargar_configuracion_completa()
