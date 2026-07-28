@@ -23,7 +23,7 @@ def asegurar_instancia_unica():
         _lock_socket.bind(('127.0.0.1', PUERTO_MUTEX_INTERNO))
         _lock_socket.listen(1)
     except socket.error:
-        print("[!] El servidor ya se encuentra en ejecución.")
+        messagebox.showerror("Error de Inicio", "Ya hay una instancia del servidor en ejecución.")
         sys.exit(0)
 
 # DETECTAR EL SISTEMA OPERATIVO
