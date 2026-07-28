@@ -1,4 +1,4 @@
-# CODIGO CLIENTE V 0.4.9 - CON PERSISTENCIA
+# CODIGO CLIENTE V 0.4.10 - MULTIPLATAFORMA
 # =================================
 import socket
 import threading
@@ -10,24 +10,19 @@ from tkinter import messagebox
 import sqlite3
 import sys
 from PIL import Image, ImageTk
-import psutil
-import subprocess
-import ctypes
-from ctypes import wintypes
 
-# 🛡️ Evitar múltiples instancias del Cliente (Se mantiene intacto por tu instrucción)
-ERROR_ALREADY_EXISTS = 183
-kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-CreateMutex = kernel32.CreateMutexW
-CreateMutex.argtypes = [wintypes.LPCVOID, wintypes.BOOL, wintypes.LPCWSTR]
-CreateMutex.restype = wintypes.HANDLE
+# 🛡️ EVITAR MULTIPLES INSTANCIAS DEL CLIENTE
+PUERTO_MUTEX_INTERNO = 65433
 
-# Este nombre DEBE coincidir con el de AppMutex de Inno Setup
-MUTEX_CLIENTE = "ControlClienteMutexSecret"
-
-mutex_handle_cliente = CreateMutex(None, False, MUTEX_CLIENTE)
-if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
+try:
+    lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    lock_socket.bind(("127.0.0.1", PUERTO_MUTEX_INTERNO))
+    lock_socket.listen(1)
+except socket.error:
+    print("[!] El cliente ya se encuentra en ejecución.")
+    messagebox.showerror("Error de Inicio", "Ya hay una instancia del cliente en ejecución.")
     sys.exit(0)
+
 
 # CONFIGURACIÓN DEL CLIENTE
 
