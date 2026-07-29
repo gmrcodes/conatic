@@ -13,7 +13,7 @@ import platform
 from PIL import Image, ImageTk
 
 # 🛡️ EVITAR MULTIPLES INSTANCIAS DEL CLIENTE
-PUERTO_MUTEX_INTERNO = 65433
+PUERTO_MUTEX_INTERNO = 65431
 
 try:
     lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,22 +27,22 @@ except socket.error:
 # DETECTAR EL SISTEMA OPERATIVO
 SISTEMA_OPERATIVO = platform.system()
 
-# CONFIGURACIÓN DEL CLIENTE
+# DETECTAR RUTA DE RECURSOS
 
 def resource_path(relative_path):
     """
     Devuelve la ruta correcta de resources tanto al ejecutar el .py
-    como al ejecutar el .exe creado con PyInstaller.
+    como al ejecutar el .exe.
     """
     try:
         base_path = sys._MEIPASS
     except AttributeError:
-        if getattr(sys, "frozen", False):
-            base_path = os.path.dirname(sys.executable)
-        else:
-            base_path = os.path.dirname(os.path.abspath(__file__))
+        src_dir = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.dirname(src_dir)
 
     return os.path.join(base_path, relative_path)
+
+# CONFIGURACIÓN DEL CLIENTE
 
 def ruta_carpeta_appdata():
     """Devuelve la ruta de almacenamiento estándar según el sistema operativo."""
@@ -66,6 +66,9 @@ def obtener_ruta_db():
     return os.path.join(ruta_carpeta_appdata(), 'cache_cliente.db')
 
 ARCH_CONFIG = obtener_ruta_config()
+
+# --- DETECCIÓN DE FUENTE SEGÚN EL S.O. ---
+FUENTE_BASE = "TkDefaultFont"
 
 def cargar_configuracion_completa():
     # Valores default si el archivo JSON aún no se ha creado
@@ -225,7 +228,7 @@ class ClienteTerminal:
         self.frame_bloqueo = tk.Frame(self.root, bg=COLOR_LOCK_BG)
 
         # LOGO
-        ruta_logo = resource_path("logo.png")
+        ruta_logo = resource_path(os.path.join("resources", "logo.png"))
         if os.path.exists(ruta_logo):
             try:
                 img_original = Image.open(ruta_logo)
@@ -241,37 +244,37 @@ class ClienteTerminal:
 
         # TÍTULO
         self.lbl_titulo = tk.Label(self.frame_bloqueo, text=f"COMPUTADOR DE USO RESTRINGIDO\nTERMINAL N° {ID_CLIENTE}",
-                                   font=("Segoe UI", 18, "bold"), fg=COLOR_TEXT, bg=COLOR_LOCK_BG)
+                                   font=(FUENTE_BASE, 18, "bold"), fg=COLOR_TEXT, bg=COLOR_LOCK_BG)
         self.lbl_titulo.pack(pady=30)
 
         # ALERTA DE RED
         self.lbl_alerta_red = tk.Label(self.frame_bloqueo, text="Verificando conexión con el servidor...",
-                                       font=("Segoe UI", 11, "bold"), fg="#eab308", bg=COLOR_LOCK_BG)
+                                       font=(FUENTE_BASE, 12, "bold"), fg="#eab308", bg=COLOR_LOCK_BG)
         self.lbl_alerta_red.pack(pady=5)
 
         self.frame_offline_login = tk.Frame(self.frame_bloqueo, bg=COLOR_LOCK_BG)
         self.frame_offline_login.pack(pady=15)
 
         tk.Label(self.frame_offline_login, text="Ingrese su ID para ingresar en Modo Offline:",
-                 font=("Segoe UI", 11), fg="#ffffff", bg=COLOR_LOCK_BG).pack(pady=15)
+                 font=(FUENTE_BASE, 12), fg="#ffffff", bg=COLOR_LOCK_BG).pack(pady=15)
 
         self.entry_login_id = tk.Entry(self.frame_offline_login, bg="#1e1e1e", fg=COLOR_TEXT, insertbackground="white",
-                                       relief="solid", bd=1, font=("Segoe UI", 14), width=22, justify="center")
+                                       relief="solid", bd=1, font=(FUENTE_BASE, 14), width=22, justify="center")
         self.entry_login_id.pack(pady=5)
         self.entry_login_id.bind("<Return>", lambda e: self.intentar_autenticacion_local())
 
         self.btn_ingresar_local = tk.Button(self.frame_offline_login, text="Iniciar Sesión Local", command=self.intentar_autenticacion_local,
-                                            bg=COLOR_ACCENT, fg=COLOR_TEXT, bd=0, font=("Segoe UI", 11, "bold"), padx=20, pady=8, cursor="hand2")
+                                            bg=COLOR_ACCENT, fg=COLOR_TEXT, bd=0, font=(FUENTE_BASE, 11, "bold"), padx=20, pady=8, cursor="hand2")
         self.btn_ingresar_local.pack(pady=15)
 
         self.frame_barra_activa = tk.Frame(self.root, bg="#1a1a1a", height=40)
         btn_terminar = tk.Button(
             self.frame_barra_activa, text="❌ Terminar Sesión", command=self.solicitar_cierre_manual_usuario,
-            bg="#dc2626", fg="white", font=("Segoe UI", 9, "bold"), bd=0, padx=10, cursor="hand2"
+            bg="#dc2626", fg="white", font=(FUENTE_BASE, 9, "bold"), bd=0, padx=10, cursor="hand2"
         )
         btn_terminar.pack(side="right", padx=15, pady=5)
         self.lbl_cronometro = tk.Label(self.frame_barra_activa, text="Tiempo Restante: 00:00:00",
-                                       font=("Segoe UI", 11, "bold"), fg="#16a34a", bg="#1a1a1a")
+                                       font=(FUENTE_BASE, 11, "bold"), fg="#16a34a", bg="#1a1a1a")
         self.lbl_cronometro.pack(side="left", padx=20, expand=True)
 
     def textos_bloqueo_normal(self):
@@ -508,11 +511,11 @@ class ClienteTerminal:
         v_alerta.geometry(f"+{x}+{y}")
 
         # Contenido visual
-        tk.Label(v_alerta, text="📢 ATENCIÓN - MENSAJE DEL BIBLIOTECARIO", font=("Segoe UI", 11, "bold"), fg=COLOR_ACCENT, bg="#1a1a1a").pack(pady=12)
-        lbl_msg = tk.Label(v_alerta, text=mensaje, font=("Segoe UI", 11), fg=COLOR_TEXT, bg="#1a1a1a", wraplength=360, justify="center")
+        tk.Label(v_alerta, text="📢 ATENCIÓN - MENSAJE DEL BIBLIOTECARIO", font=(FUENTE_BASE, 11, "bold"), fg=COLOR_ACCENT, bg="#1a1a1a").pack(pady=12)
+        lbl_msg = tk.Label(v_alerta, text=mensaje, font=(FUENTE_BASE, 11), fg=COLOR_TEXT, bg="#1a1a1a", wraplength=360, justify="center")
         lbl_msg.pack(expand=True, fill="both", padx=20)
 
-        btn_entendido = tk.Button(v_alerta, text="Entendido", command=v_alerta.destroy, bg="#3e3e42", fg=COLOR_TEXT, bd=0, font=("Segoe UI", 10, "bold"), padx=20, pady=5, cursor="hand2")
+        btn_entendido = tk.Button(v_alerta, text="Entendido", command=v_alerta.destroy, bg="#3e3e42", fg=COLOR_TEXT, bd=0, font=(FUENTE_BASE, 10, "bold"), padx=20, pady=5, cursor="hand2")
         btn_entendido.pack(pady=15)
 
     def solicitar_cierre_manual_usuario(self):
@@ -548,13 +551,31 @@ class ClienteTerminal:
 
             self.root.after(1000, self.forzar_foco_bloqueo)
 
+def aplicar_icono_cliente(root):
+    """ Carga el ícono nativo según el Sistema Operativo """
+    if SISTEMA_OPERATIVO == "Windows":
+        ruta_ico = resource_path(os.path.join("resources", "client.ico"))
+        if os.path.exists(ruta_ico):
+            try:
+                root.iconbitmap(ruta_ico)
+                return
+            except Exception as e:
+                print(f"[!] Error al aplicar icono ico: {e}")
+
+    # Fallback para Linux, macOS o si falla el .ico en Windows
+    ruta_png = resource_path(os.path.join("resources", "client.png"))
+    if os.path.exists(ruta_png):
+        try:
+            img_icono = tk.PhotoImage(file=ruta_png)
+            root.iconphoto(True, img_icono)
+            root._app_icon = img_icono  # Mantener referencia contra Garbage
+        except Exception as e:
+            print(f"[!] Error al aplicar icono png: {e}")
+    else:
+        print(f"[!] No se encontró el icono en: {ruta_png}")
+
 if __name__ == "__main__":
     root = tk.Tk()
-    ruta_icono = resource_path("icono.ico")
-    if os.path.exists(ruta_icono):
-        try:
-            root.iconbitmap(ruta_icono)
-        except Exception as e:
-            print(f"No se pudo cargar el ícono: {e}")
+    aplicar_icono_cliente(root)
     app = ClienteTerminal(root)
     root.mainloop()

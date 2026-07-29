@@ -5,7 +5,7 @@ a = Analysis(
     ['cliente.py'],
     pathex=[],
     binaries=[],
-    datas=[('..\\resources\\logo.png', '.')],
+    datas=[('../resources', 'resources')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -42,7 +42,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['..\\resources\\icono.ico'],
+    icon=['../resources/client.ico'],
 )
 coll = COLLECT(
     exe,
