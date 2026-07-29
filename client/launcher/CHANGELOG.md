@@ -1,4 +1,4 @@
-# Historial de Cambios - Launcher
+# CHANGELOG - Launcher
 
 Todos los cambios notables en el launcher serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)

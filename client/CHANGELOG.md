@@ -1,4 +1,4 @@
-# Historial de Cambios - Cliente
+# CHANGELOG - Cliente
 
 Todos los cambios notables en el cliente serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
@@ -11,6 +11,8 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Solución de sintaxis en `resource_path()` para resolución correcta de la carpeta `resources/` en entornos `.spec` , `.py` y `binarios`.
 - Corrección de _Garbage Collection_ en Tkinter manteniendo referencia de `_app_icon`.
 
+---
+
 ## [0.5.1] - 2026-07-28
 
 ### Corregido (Fix)
@@ -22,6 +24,8 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 - Soporte (UX) para fuente predeterminada según el sistema operativo.
 
+---
+
 ## [0.5.0] - 2026-07-27
 
 ### Añadido (Feat)
@@ -30,6 +34,8 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Mecanismo de instancia única (Mutex) mediante puerto socket interno (`65431`).
 - Abstracción de rutas dinámicas según el sistema operativo (`%LOCALAPPDATA%` en Windows, `~/.local/share` en Linux).
 - Ajuste de rutas del archivo config_cliente.json y de la cache_cliente.db según el S.O.
+
+---
 
 ## [0.4.1] - 2026-07-26
 
@@ -41,6 +47,8 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 - Se hace limpieza del código y se eliminan dependencias que ya no se usan (ctypes, psutil)
 
+---
+
 ## [0.4.0] - 2026-07-25
 
 ### Añadido (Feat)
@@ -49,11 +57,15 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Abstracción del sistema operativo (SISTEMA_OPERATIVO = platform.system()).
 - Se eliminó el Mutex implementado con ctypes que solo funionaba en Windows.
 
+---
+
 ## [0.3.1] - 2026-07-23
 
 ### Corregido (Fix)
 
 - Ajuste de rutas del archivo config_cliente.json y de la cache_cliente.db.
+
+---
 
 ## [0.3.0] - 2026-07-10
 
@@ -65,11 +77,15 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Mutex con manejo de libreria ctypes para Windows.
 - Launcher para relanzar automáticamente cliente.exe cuando no está en ejecución.
 
+---
+
 ## [0.2.1] - 2026-07-06
 
 ### Corregido (Fix)
 
 - Ahora La persistencia en la base de datos local cache_cliente.db guarda correctamente los tiempos de sesión.
+
+---
 
 ## [0.2.0] - 2026-07-03
 
@@ -78,6 +94,8 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Implementación del bloqueo de pantalla en modo Kiosk (overrideredirect, pantalla completa, binding de eventos de foco).
 - Integración de SQLite local (cache_cliente.db) para persistencia de credenciales/sesiones.
 - Bloqueo de combinaciones de teclas nativas Alt+F4.
+
+---
 
 ## [0.1.0] - 2026-06-30
 
