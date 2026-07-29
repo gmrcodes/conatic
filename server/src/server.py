@@ -1,4 +1,4 @@
-# CONTROL SERVIDOR DE TERMINALES - VERSIÓN 0.4.15 (MULTIPLATAFORMA WINDOWS / LINUX)
+# CONTROL SERVIDOR DE TERMINALES - MULTIPLATAFORMA
 # =====================================================================
 import socket
 import threading

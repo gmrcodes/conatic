@@ -1,5 +1,4 @@
-# LAUNCHER V1.1
-# Usando Mutex nativo con monitoreo directo .wait usando ctypes
+# LAUNCHER
 # ==============================================================================
 import os
 import sys

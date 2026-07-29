@@ -1,4 +1,4 @@
-# CODIGO CLIENTE V 0.4.10 - MULTIPLATAFORMA
+# CODIGO CLIENTE - MULTIPLATAFORMA
 # =================================
 import socket
 import threading
