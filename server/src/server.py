@@ -1,4 +1,4 @@
-# CONTROL SERVIDOR DE TERMINALES - VERSIÓN 0.3.0 (MULTIPLATAFORMA WINDOWS / LINUX)
+# CONTROL SERVIDOR DE TERMINALES - VERSIÓN 0.4.15 (MULTIPLATAFORMA WINDOWS / LINUX)
 # =====================================================================
 import socket
 import threading
@@ -12,7 +12,7 @@ import os
 import platform
 
 # MECANISMO DE INSTANCIA ÚNICA MULTIPLATAFORMA
-# Uso un socket local interno.
+# Usa un socket local interno.
 PUERTO_MUTEX_INTERNO = 65433
 _lock_socket = None
 
@@ -28,6 +28,19 @@ def asegurar_instancia_unica():
 
 # DETECTAR EL SISTEMA OPERATIVO
 SISTEMA_OPERATIVO = platform.system()
+
+# DETECTAR RUTA DE RECURSOS
+def resource_path(relative_path):
+    """
+    Devuelve la ruta correcta de resources tanto al ejecutar el .py
+    como al ejecutar el .exe."""
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        src_dir = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.dirname(src_dir)
+
+    return os.path.join(base_path, relative_path)
 
 # DEFINICIÓN DE RUTA DE LA BASE DE DATOS CENTRAL
 def obtener_ruta_db():
@@ -674,8 +687,32 @@ class ServidorGridTerminales:
             self.root.after(0, self.actualizar_tabla_ui)
             conn.close()
 
+# APLICAR ICONO DEL SISTEMA
+def aplicar_icono_servidor(root):
+    """ Asigna el ícono nativo de la interfaz según el S.O."""
+    if SISTEMA_OPERATIVO == "Windows":
+        ruta_ico = resource_path(os.path.join("resources", "server.ico"))
+        if os.path.exists(ruta_ico):
+            try:
+                root.iconbitmap(ruta_ico)
+                return
+            except Exception as e:
+                print(f"[!] Error al aplicar icono ico: {e}")
+
+    ruta_png = resource_path(os.path.join("resources", "server.png"))
+    if os.path.exists(ruta_png):
+        try:
+            img_icono = tk.PhotoImage(file=ruta_png)
+            root.iconphoto(True, img_icono)
+            root._app_icon = img_icono
+        except Exception as e:
+            print(f"[!] Error al aplicar icono png: {e}")
+    else:
+        print(f"[!] Error: No se encontró ningún archivo de ícono en {ruta_png}")
+
 if __name__ == "__main__":
     asegurar_instancia_unica()
     root = tk.Tk()
+    aplicar_icono_servidor(root)
     app = ServidorGridTerminales(root)
     root.mainloop()
