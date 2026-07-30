@@ -45,6 +45,8 @@ El proyecto está dividido estrictamente en dos componentes independientes para 
 ### Requisitos Previos
 
 - Python 3.12 o superior instalado.
+- Librería Tkinter en python.
+- Librería Pillow (PIL) en python.
 - Base de Datos Sqlite (Dependencias sqlite).
 
 ### 1. Configuración del Servidor
@@ -129,10 +131,10 @@ _Los binarios finales se generarán de manera automática en la carpeta `dist/`.
 
 ## 🖼️ Para modificar el Logo que se muestra en el Cliente
 
-Si deseas cambiar el logo que se muestra en el cliente, ve a la **carpeta de instalación del cliente**, luego ve a la carpeta **\_internal** y reemplaza **logo.png**
+Si deseas cambiar el logo que se muestra en el cliente, ve a la **carpeta de instalación del cliente**, luego ve a la carpeta **/\_internal/resources/** y reemplaza **logo.png**
 
 ```bash
-cd %programfiles%\Control Cliente\_internal\
+cd Carpeta_Instalacion/Control Cliente/_internal/resources/
 ```
 
 ---
