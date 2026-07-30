@@ -1,63 +1,107 @@
-# LAUNCHER
+# LAUNCHER -WATCHDOG PARA EL CLIENTE
+# Este script es un "watchdog" que se asegura de que la aplicación cliente esté siempre corriendo.
+# ==============================================================================
+# Versión: 0.2.0
 # ==============================================================================
 import os
 import sys
 import time
 import subprocess
-import ctypes
-from ctypes import wintypes
+import socket
+import platform
+import signal
 
 # ==============================================================================
-# CONTROL DE INSTANCIAS ROBUSTO (MUTEX NATIVO)
+# 🛡️ EVITAR MULTIPLES INSTANCIAS DEL LAUNCHER POR LOCKSOCKET
 # ==============================================================================
-ERROR_ALREADY_EXISTS = 183
 
-# Definir las funciones de la API de Windows de forma segura
-kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-CreateMutex = kernel32.CreateMutexW
-CreateMutex.argtypes = [wintypes.LPCVOID, wintypes.BOOL, wintypes.LPCWSTR]
-CreateMutex.restype = wintypes.HANDLE
+PUERTO_MUTEX_LAUNCHER = 65434
 
-# Este nombre DEBE coincidir exactamente con el que pusiste en AppMutex de Inno Setup
-MUTEX_NAME = "ControlLauncherMutexSecret"
-
-# Intentar crear el Mutex en la memoria de Windows
-mutex_handle = CreateMutex(None, False, MUTEX_NAME)
-last_error = kernel32.GetLastError()
-
-if last_error == ERROR_ALREADY_EXISTS:
-    # Si el Mutex ya existe, entonces YA HAY un launcher ejecutándose.
-    # Cerrar esta segunda instancia silenciosamente de inmediato.
+try:
+    lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    lock_socket.bind(("127.0.0.1", PUERTO_MUTEX_LAUNCHER))
+    lock_socket.listen(1)
+except socket.error:
+    print("[!] El cliente watchdog ya se encuentra en ejecución.")
+    try:
+        from tkinter import messagebox
+        messagebox.showerror("Error", "El cliente watchdog ya se encuentra en ejecución.")
+    except Exception:
+        pass
     sys.exit(0)
 
+# DETECTAR SISTEMA OPERATIVO
+# =============================================================================
+SISTEMA_OPERATIVO = platform.system()
 
-# ==============================================================================
-# LÓGICA DEL WATCHDOG (OPTIMIZADA A 0% DE CPU)
-# ==============================================================================
-APP_NAME = "cliente.exe"
-
+# CONFIGURACION DE RUTA DEL CLIENTE
+# =============================================================================
 def get_base_dir():
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.abspath(__file__))
 
 BASE_DIR = get_base_dir()
-CLIENTE = os.path.join(BASE_DIR, APP_NAME)
+
+APP_NAME = "cliente.exe" if SISTEMA_OPERATIVO == "Windows" else "cliente"
+
+CLIENTE_PATH = os.path.join(BASE_DIR, APP_NAME)
+
+# CONTROL DE CIERRE DEL PROCESO CLIENTE CON MANEJO DE SEÑALES
+# =============================================================================
+proceso_cliente = None
+
+def terminar_proceso_hijo(signum, frame):
+    """ Garantiza que al cerrar el launcher también se detenga el cliente """
+    global proceso_cliente
+    print("\n[*] Cerrando el watchdog y finalizando procesos...")
+    if proceso_cliente and proceso_cliente.poll() is None:
+        try:
+            proceso_cliente.terminate()
+            proceso_cliente.wait(timeout=2)
+        except Exception:
+            proceso_cliente.kill()
+    sys.exit(0)
+
+# Interceptar peticiones de cierre del sistema operativo
+signal.signal(signal.SIGINT, terminar_proceso_hijo)
+signal.signal(signal.SIGTERM, terminar_proceso_hijo)
+
+# ==============================================================================
+# LÓGICA DEL WATCHDOG (OPTIMIZADA A 0% DE CPU)
+# ==============================================================================
 
 while True:
     try:
-        if os.path.exists(CLIENTE):
+        if os.path.exists(CLIENTE_PATH):
+            if SISTEMA_OPERATIVO != "Windows":
+                # En Linux y macOS, aseguramos que el cliente sea ejecutable
+                try:
+                    os.chmod(CLIENTE_PATH, 0o755)
+                except Exception as e:
+                    print(f"Error al cambiar permisos de {CLIENTE_PATH}: {e}")
+
+            tiempo_inicio = time.time()
+
             # Lanzamos el cliente y guardamos la referencia del proceso
-            proceso_cliente = subprocess.Popen(CLIENTE)
+            proceso_cliente = subprocess.Popen([CLIENTE_PATH])
             
-            # .wait() congela este script de forma pasiva sin consumir CPU.
-            # Windows le avisará al launcher en la millonésima de segundo exacta 
-            # en la que 'cliente.exe' muera o sea cerrado.
+            # .wait() congela este script de forma pasiva sin consumir CPU.            
             proceso_cliente.wait()
+
+            duracion = time.time() - tiempo_inicio
+
+            if duracion < 3:
+                print("[*] El cliente se cerró prematuramente. Reiniciando en 3 segundos...")
+                time.sleep(3)
         else:
-            print(f"Error: No se encontró el ejecutable en {CLIENTE}")
-            time.sleep(5) # Esperar un momento si el archivo desapareció temporalmente
-            
+            print(f"Error: No se encontró el ejecutable en: {CLIENTE_PATH}")
+            time.sleep(5) # Esperar antes de reintentar buscar el ejecutable
+
+    except PermissionError:
+        print(f"[!] Permiso denegado al intentar ejecutar: {CLIENTE_PATH}")
+        time.sleep(5)        
     except Exception as e:
         # Evitar que el launcher colapse por algún error imprevisto
+        print(f"[!] Excepción inesperada en el watchdog: {e}")
         time.sleep(2)
