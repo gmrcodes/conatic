@@ -1,7 +1,7 @@
 # LAUNCHER -WATCHDOG PARA EL CLIENTE
 # Este script es un "watchdog" que se asegura de que la aplicación cliente esté siempre corriendo.
 # ==============================================================================
-# Versión: 0.2.0
+# Versión: 0.3.0
 # ==============================================================================
 import os
 import sys
@@ -11,14 +11,16 @@ import socket
 import platform
 import signal
 
+PUERTO_MUTEX_CLIENTE = 65431
+PUERTO_MUTEX_LAUNCHER = 65434
+
 # ==============================================================================
 # 🛡️ EVITAR MULTIPLES INSTANCIAS DEL LAUNCHER POR LOCKSOCKET
 # ==============================================================================
 
-PUERTO_MUTEX_LAUNCHER = 65434
-
 try:
     lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    lock_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     lock_socket.bind(("127.0.0.1", PUERTO_MUTEX_LAUNCHER))
     lock_socket.listen(1)
 except socket.error:
@@ -34,7 +36,7 @@ except socket.error:
 # =============================================================================
 SISTEMA_OPERATIVO = platform.system()
 
-# CONFIGURACION DE RUTA DEL CLIENTE
+# OBTENER RUTA DEL CLIENTE
 # =============================================================================
 def get_base_dir():
     if getattr(sys, "frozen", False):
@@ -47,56 +49,67 @@ APP_NAME = "cliente.exe" if SISTEMA_OPERATIVO == "Windows" else "cliente"
 
 CLIENTE_PATH = os.path.join(BASE_DIR, APP_NAME)
 
-# CONTROL DE CIERRE DEL PROCESO CLIENTE CON MANEJO DE SEÑALES
+# FUNCIONES AUXILIARES
 # =============================================================================
-proceso_cliente = None
 
-def terminar_proceso_hijo(signum, frame):
-    """ Garantiza que al cerrar el launcher también se detenga el cliente """
-    global proceso_cliente
-    print("\n[*] Cerrando el watchdog y finalizando procesos...")
-    if proceso_cliente and proceso_cliente.poll() is None:
+def cliente_esta_activo():
+    """Intenta conectarse al puerto mutex del cliente.
+    Si la conexión se realiza con éxito, significa que el cliente está activo."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.5)
+
+    try:
+        s.connect(("127.0.0.1", PUERTO_MUTEX_CLIENTE))
+        return True # Cliente activo
+    except OSError:
+        return False # Cliente inactivo
+    finally:
+        s.close()
+
+def iniciar_cliente():
+
+    if not os.path.exists(CLIENTE_PATH):
+        print(f"[!] No se encontró el cliente en: {CLIENTE_PATH}")
+        return
+
+    if SISTEMA_OPERATIVO != "Windows":                    
+        # En Linux y macOS, aseguramos que el cliente sea ejecutable
         try:
-            proceso_cliente.terminate()
-            proceso_cliente.wait(timeout=2)
-        except Exception:
-            proceso_cliente.kill()
+            os.chmod(CLIENTE_PATH, 0o755)
+        except Exception as e:
+            print(f"Error al cambiar permisos de {CLIENTE_PATH}: {e}")
+
+    try:
+        # Intentar iniciar el cliente
+        subprocess.Popen([CLIENTE_PATH], cwd=BASE_DIR, close_fds=True)
+
+    except Exception as e:
+        print(f"[!] Error al intentar iniciar el cliente: {e}")
+
+    time.sleep(1)  # Esperar un segundo para que el cliente inicie correctamente
+
+# CIERRE DE LAUNCHER CON MANEJO DE SEÑALES
+# =============================================================================
+
+def salir_launcher(_signum, _frame):
     sys.exit(0)
 
-# Interceptar peticiones de cierre del sistema operativo
-signal.signal(signal.SIGINT, terminar_proceso_hijo)
-signal.signal(signal.SIGTERM, terminar_proceso_hijo)
+signal.signal(signal.SIGINT, salir_launcher)
+signal.signal(signal.SIGTERM, salir_launcher)
+
+if SISTEMA_OPERATIVO == "Windows":
+    signal.signal(signal.SIGBREAK, salir_launcher)
 
 # ==============================================================================
-# LÓGICA DEL WATCHDOG (OPTIMIZADA A 0% DE CPU)
+# LÓGICA DEL WATCHDOG (OPTIMIZADA)
 # ==============================================================================
 
 while True:
     try:
-        if os.path.exists(CLIENTE_PATH):
-            if SISTEMA_OPERATIVO != "Windows":
-                # En Linux y macOS, aseguramos que el cliente sea ejecutable
-                try:
-                    os.chmod(CLIENTE_PATH, 0o755)
-                except Exception as e:
-                    print(f"Error al cambiar permisos de {CLIENTE_PATH}: {e}")
+        if not cliente_esta_activo():
+            iniciar_cliente()
 
-            tiempo_inicio = time.time()
-
-            # Lanzamos el cliente y guardamos la referencia del proceso
-            proceso_cliente = subprocess.Popen([CLIENTE_PATH])
-            
-            # .wait() congela este script de forma pasiva sin consumir CPU.            
-            proceso_cliente.wait()
-
-            duracion = time.time() - tiempo_inicio
-
-            if duracion < 3:
-                print("[*] El cliente se cerró prematuramente. Reiniciando en 3 segundos...")
-                time.sleep(3)
-        else:
-            print(f"Error: No se encontró el ejecutable en: {CLIENTE_PATH}")
-            time.sleep(5) # Esperar antes de reintentar buscar el ejecutable
+        time.sleep(2)
 
     except PermissionError:
         print(f"[!] Permiso denegado al intentar ejecutar: {CLIENTE_PATH}")
@@ -104,4 +117,4 @@ while True:
     except Exception as e:
         # Evitar que el launcher colapse por algún error imprevisto
         print(f"[!] Excepción inesperada en el watchdog: {e}")
-        time.sleep(2)
+        time.sleep(5)
