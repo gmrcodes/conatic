@@ -4,6 +4,20 @@ Todos los cambios notables en el launcher serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.3.1] - 2026-07-31
+
+### Cambiado (Changed)
+
+- Se eliminó el uso de `SO_REUSEADDR` en el mutex TCP del launcher para garantizar la exclusividad del puerto durante toda la ejecución.
+
+### Corregido (Fixed)
+
+- Corregida la prevención de múltiples instancias del launcher.
+- Restaurado el comportamiento exclusivo del mutex TCP en Windows.
+- Mejorada la fiabilidad del mecanismo de bloqueo del launcher sin afectar la supervisión del cliente.
+
+---
+
 ## [0.3.0] - 2026-07-31
 
 ### Añadido (Added)
