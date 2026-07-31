@@ -4,6 +4,20 @@ Todos los cambios notables en el cliente serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.5.3] - 2026-07-31
+
+### Añadido (Added)
+
+- Se agregó una función que acepta las conexiones del launcher.
+- Se incorporó un hilo en segundo plano para aceptar y liberar automáticamente las conexiones del mutex TCP utilizado por el cliente.
+
+### Corregido (Fixed)
+
+- Corregido un problema por el cual la cola del socket mutex podía saturarse al no aceptar conexiones entrantes.
+- Mejorada la estabilidad del mecanismo de supervisión entre launcher y cliente en Windows y Linux.
+
+---
+
 ## [0.5.2] - 2026-07-29
 
 ### Corregido (Fix)
