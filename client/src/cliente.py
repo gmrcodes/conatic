@@ -1,5 +1,7 @@
 # CODIGO CLIENTE - MULTIPLATAFORMA
-# =================================
+# ==============================================
+# Versión: 0.5.3
+# ==============================================
 import socket
 import threading
 import json
@@ -12,13 +14,28 @@ import sys
 import platform
 from PIL import Image, ImageTk
 
+# HILO PARA MANTENER LA COLA DEL SOCKET VACIA
+# -----------------------------------------------
+def atender_launcher():
+    while True:
+        try:
+            conn, _ = lock_socket.accept()
+            conn.close()
+        except OSError as e:
+            print(f"[!] Error en el hilo de bloqueo de instancia: {e}")
+            break
+
 # 🛡️ EVITAR MULTIPLES INSTANCIAS DEL CLIENTE
+# -----------------------------------------------
 PUERTO_MUTEX_INTERNO = 65431
 
 try:
     lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     lock_socket.bind(("127.0.0.1", PUERTO_MUTEX_INTERNO))
     lock_socket.listen(1)
+
+    threading.Thread(target=atender_launcher, daemon=True).start()
+
 except socket.error:
     print("[!] El cliente ya se encuentra en ejecución.")
     messagebox.showerror("Error de Inicio", "Ya hay una instancia del cliente en ejecución.")
