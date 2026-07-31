@@ -4,6 +4,29 @@ Todos los cambios notables en el launcher serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.3.0] - 2026-07-31
+
+### Añadido (Added)
+
+- **Supervisión basada en Mutex**: El launcher ahora determina el estado del cliente mediante la comprobación del mutex TCP, eliminando la dependencia del proceso hijo.
+- **Inicialización Robusta del Cliente**: Se añadió una pausa de estabilización tras el lanzamiento del cliente para evitar condiciones de carrera durante la creación del mutex.
+- **Directorio de Trabajo Consistente**: El cliente ahora se inicia utilizando el directorio base del launcher (`cwd=BASE_DIR`), garantizando el acceso correcto a recursos y archivos de configuración.
+
+### Cambiado (Changed)
+
+- **Arquitectura del Watchdog**: Simplificación completa del ciclo principal, reemplazando la supervisión mediante `subprocess.wait()` por un monitoreo periódico del mutex del cliente.
+- **Gestión de Señales**: Simplificación del manejo de señales del launcher para realizar únicamente una finalización limpia del proceso, sin intervenir sobre el cliente.
+- **Lógica de Supervisión**: El launcher ahora supervisa exclusivamente el estado real del cliente, independientemente de quién haya iniciado el proceso.
+
+### Corregido (Fixed)
+
+- Eliminado el riesgo de crear múltiples instancias del cliente al reiniciar manualmente el launcher.
+- Corregido el bucle de relanzamiento provocado por la supervisión del proceso hijo mediante `wait()`.
+- Mejorada la estabilidad del watchdog cuando el launcher es reiniciado mientras el cliente continúa en ejecución.
+- Optimizado el consumo de CPU manteniendo un ciclo de supervisión basado en espera (`sleep`) y comprobaciones periódicas del mutex.
+
+---
+
 ## [0.2.0] - 2026-07-30
 
 ### Añadido (Added)
