@@ -1,7 +1,7 @@
 # LAUNCHER -WATCHDOG PARA EL CLIENTE
 # Este script es un "watchdog" que se asegura de que la aplicación cliente esté siempre corriendo.
 # ==============================================================================
-# Versión: 0.3.0
+# Versión: 0.3.1
 # ==============================================================================
 import os
 import sys
@@ -20,7 +20,6 @@ PUERTO_MUTEX_LAUNCHER = 65434
 
 try:
     lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    lock_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     lock_socket.bind(("127.0.0.1", PUERTO_MUTEX_LAUNCHER))
     lock_socket.listen(1)
 except socket.error:
